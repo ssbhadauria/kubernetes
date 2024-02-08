@@ -1,0 +1,94 @@
+image:
+  repository: kong/kong-gateway
+  tag: "3.3"
+
+env:
+  role: data_plane
+  database: "off"
+  cluster_ca_cert:
+    valueFrom:
+      secretKeyRef:
+        name: tls-ca
+        key: ca.crt
+  lua_ssl_trusted_certificate:
+    valueFrom:
+      secretKeyRef:
+        name: tls-ca
+        key: ca.crt
+  ##
+  cluster_mtls: "pki"
+  cluster_server_name: "kee-cp-kong-cluster.cp.svc.cluster.local" 
+  cluster_telemetry_server_name: "kee-cp-kong-cluster.cp.svc.cluster.local" 
+  cluster_control_plane: "kee-cp-kong-cluster.cp.svc.cluster.local:8005"
+  cluster_telemetry_endpoint: "kee-cp-kong-clustertelemetry.cp.svc.cluster.local:8006"
+  cluster_cert_key: /etc/secrets/kong-cluster-tls/tls.key
+  cluster_cert: /etc/secrets/kong-cluster-tls/tls.crt
+  ssl_cert_key: /etc/secrets/kong-dp-ssl/tls.key
+  ssl_cert: /etc/secrets/kong-dp-ssl/tls.crt
+  client_ssl: on 
+  client_ssl_cert_key: /etc/secrets/kong-dp-client-ssl/tls.key
+  client_ssl_cert: /etc/secrets/kong-dp-client-ssl/tls.crt
+  log_level: debug
+  vitals: on
+#  headers: "off"
+  audit_log: "on"
+  ssl_cipher_suite: "intermediate"
+  trusted_ips: "0.0.0.0/0,::0"
+  real_ip_header: "X-Forward-For"
+  anonymous_reports: "off"
+  untrusted_lua: "on"
+
+proxy:
+  enabled: true
+  type: LoadBalancer 
+  http:
+    enabled: true
+    servicePort: 8000
+    containerPort: 8000
+  tls:
+    enabled: true 
+    servicePort: 8443
+    containerPort: 8443
+    parameters: []
+  ingress:
+    enabled: false 
+    tls: kong-dp-ssl
+    hostname: api.gke.lan
+    path: /
+    hosts:
+      - api.gke.lan
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      kubernetes.io/ingress.class: "kong"
+
+enterprise:
+  enabled: true
+  license_secret: kong-enterprise-license
+  vitals:
+    enabled: true
+
+replicaCount: 3 
+
+secretVolumes:
+- kong-cluster-tls
+- kong-dp-ssl
+- kong-dp-client-ssl
+
+ingressController:
+  enabled: false 
+  installCRDs: false
+
+postgresql:
+  enabled: false
+
+admin:
+  enabled: false
+
+portal:
+  enabled: false
+
+manager:
+  enabled: false
+
+portalapi:
+  enabled: false

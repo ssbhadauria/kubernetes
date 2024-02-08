@@ -1,0 +1,167 @@
+image:
+  repository: kong/kong-gateway
+  tag: "latest"
+  #effectiveSemver: 3.4.1
+  effectiveSemver: 3.5.0.1
+
+command:
+- cat
+args:
+- "/etc/hosts/"
+
+deployment:
+  hostAliases:
+  - ip: 23.251.158.7
+    hostnames:
+    - "keycloak.local.lan"
+env:
+  role: data_plane
+  database: "off"
+  cluster_ca_cert:
+    valueFrom:
+      secretKeyRef:
+        name: tls-ca
+        key: ca.crt
+  lua_ssl_trusted_certificate:
+    valueFrom:
+      secretKeyRef:
+        name: tls-ca
+        key: ca.crt
+  ##
+  cluster_mtls: "pki"
+  cluster_server_name: "kic-cp-kong-cluster.cp.svc.cluster.local" 
+  cluster_telemetry_server_name: "kic-cp-kong-cluster.cp.svc.cluster.local" 
+  cluster_control_plane: "kic-cp-kong-cluster.cp.svc.cluster.local:8005"
+  cluster_telemetry_endpoint: "kic-cp-kong-clustertelemetry.cp.svc.cluster.local:8006"
+  cluster_cert_key: /etc/secrets/kong-cluster-tls/tls.key
+  cluster_cert: /etc/secrets/kong-cluster-tls/tls.crt
+  ssl_cert_key: /etc/secrets/kong-dp-ssl/tls.key
+  ssl_cert: /etc/secrets/kong-dp-ssl/tls.crt
+  client_ssl: on 
+  client_ssl_cert_key: /etc/secrets/kong-dp-client-ssl/tls.key
+  client_ssl_cert: /etc/secrets/kong-dp-client-ssl/tls.crt
+  log_level: info
+  tracing_instrumentations: all
+  tracing_sampling_rate: "1.0" 
+  vitals: on
+#  headers: "off"
+  audit_log: "on"
+  ssl_cipher_suite: "intermediate"
+  trusted_ips: "0.0.0.0/0,::0"
+  real_ip_header: "X-Forward-For"
+  anonymous_reports: "off"
+  untrusted_lua: "on"
+
+proxy:
+  annotations:
+    konghq.com/protocol: https
+    prometheus.io/port: "9542"
+    prometheus.io/scrape: "true"
+  enabled: true
+  #overrideServiceTargetPort: 8000
+  type: LoadBalancer 
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  tls:
+    enabled: true 
+    servicePort: 443
+    containerPort: 8443
+    parameters: []
+  stream: 
+    #   # Set the container (internal) and service (external) ports for this listen.
+    #   # These values should normally be the same. If your environment requires they
+    #   # differ, note that Kong will match routes based on the containerPort only.
+    - containerPort: 9000
+      servicePort: 9000
+      protocol: TCP
+    #   # Optionally set a static nodePort if the service type is NodePort
+    #   # nodePort: 32080
+    #   # Additional listen parameters, e.g. "ssl", "reuseport", "backlog=16384"
+    #   # "ssl" is required for SNI-based routes. It is not supported on versions <2.0
+      parameters: []
+    - containerPort: 9443
+      servicePort: 9443
+      protocol: TCP
+      ssl:
+        enabled: true
+      parameters: []
+  ingress:
+    enabled: false 
+    tls: kong-dp-ssl
+    hostname: proxy.local.lan
+    path: /apis
+    hosts:
+      - proxy.local.lan
+      - apis.local.lan
+      - api.local.lan
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      konghq.com/host-aliases: "apis.local.lan,api.local.lan"
+      kubernetes.io/ingress.class: kong
+      konghq.com/protocols: "https"
+      konghq.com/strip-path: "true"
+  labels:
+    enable-metrics: true
+
+enterprise:
+  enabled: true
+  license_secret: kong-enterprise-license
+  vitals:
+    enabled: true
+
+replicaCount: 1 
+
+secretVolumes:
+- kong-cluster-tls
+- kong-dp-ssl
+- kong-dp-client-ssl
+
+status:
+  enabled: true
+  http:
+    containerPort: 8100
+    enabled: true
+  tls:
+    containerPort: 8543
+    enabled: false
+
+postgresql:
+  enabled: false
+
+admin:
+  enabled: false
+
+portal:
+  enabled: false
+
+manager:
+  enabled: false
+
+portalapi:
+  enabled: false
+
+ingressController:
+  enabled: false 
+  gatewayDiscovery:
+    enabled: true
+    adminApiService:
+      namespace: "cp"
+      name: "kic-cp-kong-admin"
+  installCRDs: false
+  env:
+    #kong_admin_filter_tag: ingress_controller_default
+    kong_admin_tls_skip_verify: true
+    kong_admin_token: kong
+#      valueFrom:
+#        secretKeyRef:
+#          name: kong-config-secret
+#          key: kong_admin_password
+    #kong_admin_url: https://localhost:8444
+    #kong_workspace: default
+    publish_service: dp/kic-dp-kong-proxy
+  image:
+    repository: docker.io/kong/kubernetes-ingress-controller
+    tag: "2.9"
+  #ingressClass: default

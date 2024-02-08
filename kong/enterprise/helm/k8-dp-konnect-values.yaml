@@ -1,0 +1,114 @@
+image:
+  repository: kong/kong-gateway
+  tag: "3.4.1.0"
+
+env:
+  role: data_plane
+  database: "off"
+  cluster_ca_cert:
+    valueFrom:
+      secretKeyRef:
+        name: tls-ca
+        key: ca.crt
+  #lua_ssl_trusted_certificate:
+  #  valueFrom:
+  #    secretKeyRef:
+  #      name: tls-ca
+  #      key: ca.crt
+  ##
+  cluster_mtls: "pki"
+  cluster_control_plane: 3658d0222f.us.cp0.konghq.com:443
+  cluster_server_name: 3658d0222f.us.cp0.konghq.com
+  cluster_telemetry_endpoint: 3658d0222f.us.tp0.konghq.com:443
+  cluster_telemetry_server_name: 3658d0222f.us.tp0.konghq.com
+  cluster_cert_key: /etc/secrets/kong-cluster-cert/tls.key
+  cluster_cert: /etc/secrets/kong-cluster-cert/tls.crt
+  lua_ssl_trusted_certificate: system
+  ssl_cert_key: /etc/secrets/kong-dp-ssl/tls.key
+  ssl_cert: /etc/secrets/kong-dp-ssl/tls.crt
+  client_ssl: on 
+  client_ssl_cert_key: /etc/secrets/kong-dp-client-ssl/tls.key
+  client_ssl_cert: /etc/secrets/kong-dp-client-ssl/tls.crt
+  log_level: info
+  tracing_instrumentations: all
+  tracing_sampling_rate: "1.0"
+  konnect_mode: "on" 
+  vitals: on
+  audit_log: "on"
+  ssl_cipher_suite: "intermediate"
+  trusted_ips: "0.0.0.0/0,::0"
+  real_ip_header: "X-Forward-For"
+  anonymous_reports: "off"
+  untrusted_lua: "on"
+
+proxy:
+  annotations:
+    konghq.com/protocol: https
+    prometheus.io/port: "9542"
+    prometheus.io/scrape: "true"
+  enabled: true
+  #overrideServiceTargetPort: 8000
+  type: ClusterIP 
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  tls:
+    enabled: true 
+    servicePort: 8443
+    containerPort: 8443
+    parameters:
+    - http2
+  ingress:
+    enabled: false 
+    tls: kong-dp-ssl
+    hostname: proxy.local.lan
+    path: /apis
+    hosts:
+      - proxy.local.lan
+      - apis.local.lan
+      - api.local.lan
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      konghq.com/host-aliases: "apis.local.lan,api.local.lan"
+      kubernetes.io/ingress.class: kong
+      konghq.com/protocols: "https"
+      konghq.com/strip-path: "true"
+  labels:
+    enable-metrics: true
+
+enterprise:
+  enabled: true
+  license_secret: kong-enterprise-license
+  vitals:
+    enabled: true
+
+replicaCount: 2 
+
+secretVolumes:
+- kong-cluster-cert
+- kong-dp-ssl
+- kong-dp-client-ssl
+
+status:
+  enabled: true
+  http:
+    containerPort: 8100
+    enabled: true
+  tls:
+    containerPort: 8543
+
+admin:
+  enabled: false
+
+portal:
+  enabled: false
+
+manager:
+  enabled: false
+
+portalapi:
+  enabled: false
+
+ingressController:
+  enabled: false

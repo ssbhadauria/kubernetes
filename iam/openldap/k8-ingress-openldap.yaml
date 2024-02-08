@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    #nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    #konghq.com/protocols: "https"
+    #konghq.com/strip-path: "true"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+    nginx.ingress.kubernetes.io/app-root: /
+  labels:
+    app.kubernetes.io/instance: ldap 
+  name: ldap-ingress
+  namespace: idp 
+spec:
+  ingressClassName: kong 
+  rules:
+  - host: ldap.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ldap 
+            port:
+              number: 389 
+  - host: ldapadmin.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ldap 
+            port:
+              number: 8080 
+#  tls:
+#  - hosts:
+#    - keycloak.local.lan
+#    - grafana.local.lan
+#    - prometheus.local.lan
+#    secretName: keycloak-tls

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: kong 
+  namespace: cp
+spec:
+  controller: ingress-controllers.konghq.com/kong
+---
+apiVersion: configuration.konghq.com/v1beta1 
+kind: TCPIngress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: kong
+  labels:
+    app.kubernetes.io/instance: kic-cp 
+  name: pg-ingress
+  namespace: cp
+spec:
+  rules:
+  - host: psql.local.lan
+    port: 9000 
+    backend:
+        serviceName: kic-cp-postgresql
+        servicePort: 5432

@@ -1,0 +1,84 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    #konghq.com/protocols: "https"
+    #konghq.com/strip-path: "true"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+    nginx.ingress.kubernetes.io/app-root: /
+  labels:
+    app.kubernetes.io/instance: prometheus 
+    app.kubernetes.io/instance: grafana 
+  name: pg-ingress
+  namespace: monitor 
+spec:
+  ingressClassName: kong 
+  rules:
+  - host: prometheus.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-prometheus 
+            port:
+              number: 9090
+  - host: alerts.prometheus.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-alertmanager 
+            port:
+              number: 9093 
+  - host: operator.prometheus.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-operator 
+            port:
+              number: 443
+  - host: exporter.prometheus.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-prometheus-node-exporter 
+            port:
+              number: 9100 
+  - host: metrics.prometheus.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-kube-state-metrics 
+            port:
+              number: 8080 
+  - host: grafana.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-stack-grafana 
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - keycloak.local.lan
+    - grafana.local.lan
+    - prometheus.local.lan
+    secretName: monitor-tls 

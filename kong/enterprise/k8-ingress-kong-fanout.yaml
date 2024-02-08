@@ -1,0 +1,77 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+#  name: test 
+  name: kong 
+  namespace: cp
+spec:
+  controller: ingress-controllers.konghq.com/kong
+---
+#apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+#    kubernetes.io/ingress.class: test 
+#    ingress-controllers.konghq.com: kong
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    konghq.com/protocols: "https"
+    #konghq.com/strip-path: "true"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+    nginx.ingress.kubernetes.io/app-root: /
+#    nginx.ingress.kubernetes.io/rewrite-target: /$1
+  labels:
+    app.kubernetes.io/instance: kic-cp
+  name: kic-cp-ingress
+  namespace: cp
+spec:
+#  ingressClassName: test 
+  ingressClassName: kong 
+  rules:
+  - host: adminapi.local.lan 
+    http:
+      paths:
+      #- path: /admin/?(.*)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kic-cp-kong-admin 
+            port:
+              number: 8444 
+  - host: adminapi.local.lan 
+    http:
+      paths:
+      - path: /manager
+        pathType: Prefix
+        backend:
+          service:
+            name: kic-cp-kong-manager
+            port:
+              number: 8445
+  - host: portal.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kic-cp-kong-portal
+            port:
+              number: 8446
+  - host: portalapi.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kic-cp-kong-portalapi
+            port:
+              number: 8447
+  tls:
+  - hosts:
+    - manager.local.lan
+    - adminapi.local.lan
+    secretName: kong-ingress-tls

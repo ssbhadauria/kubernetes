@@ -1,0 +1,13 @@
+replicas: 2
+
+secret:
+  enabled: true 
+  password: "test123" # generated randomly if not defined
+
+#protocol: http
+
+#service:
+#  enabled: true
+#  type: ClusterIP
+#  httpPortName: http
+#  transportPortName: transport

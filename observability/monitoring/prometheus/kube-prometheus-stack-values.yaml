@@ -1,0 +1,22 @@
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs: 
+    - job_name: 'kubernetes-kong'
+      metrics_path: /metrics
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - cp
+          - dp  
+        selectors:
+          - role: "pod"
+            label: "app.kubernetes.io/name=kong"
+            field: "status.phase=Running"
+      relabel_configs:
+      - source_labels: [ __meta_kubernetes_pod_container_port_number ]
+        regex: '(8100)'
+        action: keep
+      - source_labels: [ __meta_kubernetes_pod_name ]
+        action: replace
+        target_label: instance

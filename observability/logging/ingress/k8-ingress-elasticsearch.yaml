@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    konghq.com/protocols: "https"
+    #konghq.com/strip-path: "true"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+    nginx.ingress.kubernetes.io/app-root: /
+  labels:
+    app.kubernetes.io/instance: elasticsearch-master 
+    app.kubernetes.io/instance: kibana-kibana 
+  name: elastic-ingress
+  namespace: log 
+spec:
+  ingressClassName: kong 
+  rules:
+  - host: elasticsearch.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: elasticsearch-master 
+            port:
+              number: 9200 
+  - host: kibana.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kibana-kibana 
+            port:
+              number: 5601 
+  tls:
+  - hosts:
+    - elasticsearch.local.lan
+    - yaeger.local.lan
+    - filebeat.local.lan
+    - otel.local.lan
+    - kibana.local.lan
+    - fluent.local.lan
+    secretName: logging-tls

@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: kong 
+  namespace: cp
+spec:
+  controller: ingress-controllers.konghq.com/kong
+---
+#apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    konghq.com/protocols: "https"
+    #konghq.com/strip-path: "true"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+    nginx.ingress.kubernetes.io/app-root: /
+  labels:
+    app.kubernetes.io/instance: konnect 
+  name: konnect-ingress
+  namespace: dp
+spec:
+  ingressClassName: kong 
+  rules:
+  - host: proxy.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: konnect-kong-proxy
+            port:
+              number: 8443 
+  - host: api.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: debug-kong-proxy
+            port:
+              number: 7443 
+  - host: gateway.local.lan 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cpu-profiler-kong-proxy 
+            port:
+              number: 6443 
+  tls:
+  - hosts:
+    - proxy.local.lan
+    secretName: konnect-ingress-tls

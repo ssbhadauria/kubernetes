@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldap
+  labels:
+    app: ldap
+spec:
+  type: "ClusterIP"
+  ports:
+  - name: php-http 
+    port: 8080
+    protocol: TCP
+    targetPort: 80
+  - name: php-https 
+    port: 8443
+    protocol: TCP
+    targetPort: 443
+  - name: ldap-https 
+    port: 636
+    protocol: TCP
+    targetPort: 636
+  - name: ldap-http
+    port: 389
+    protocol: TCP
+    targetPort: 389
+  selector:
+    app: ldap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldap
+  labels:
+    app: ldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ldap
+  template:
+    metadata:
+      labels:
+        app: ldap
+    spec:
+      containers:
+        - image: osixia/phpldapadmin:latest
+          name: phpldapadmin
+          ports:
+            - containerPort: 80
+              name: http 
+            - containerPort: 443
+              name: https 
+          env:
+            - name: PHPLDAPADMIN_LDAP_HOSTS
+              value: ldapadmin.local.lan
+            - name: PHPLDAPADMIN_HTTPS
+              value: "false"
+        - name: ldap
+          #image: bitnami/openldap:stable
+          #image: osixia/openldap:stable
+          image: noenv/openldap:2.6.3
+          volumeMounts:
+            - name: ldap-data
+              mountPath: /var/lib/ldap
+            - name: ldap-config
+              mountPath: /etc/ldap/slapd.d
+            - name: ldap-certs
+              mountPath: /container/service/slapd/assets/certs
+          ports:
+            - containerPort: 389
+              name: http 
+            - containerPort: 636
+              name: https 
+          env:
+            - name: HOSTNAME 
+              value: ldap.local.lan 
+            - name: LDAP_ORGANISATION
+              value: "Kong Inc."
+            - name: LDAP_DOMAIN
+              value: "kong.lan"
+            - name: LDAP_ADMIN_PASSWORD
+              value: "admin"
+            - name: LDAP_CONFIG_PASSWORD
+              value: "config"
+            - name: KEEP_EXISTING_CONFIG
+              value: "false"
+            - name: LDAP_REMOVE_CONFIG_AFTER_SETUP
+              value: "true"
+            - name: LDAP_SSL_HELPER_PREFIX
+              value: "ldap"
+      volumes:
+        - name: ldap-data
+          persistentVolumeClaim:
+            claimName: ldap-data-pvc
+        - name: ldap-config
+          persistentVolumeClaim:
+            claimName: ldap-config-pvc
+        - name: ldap-certs
+          persistentVolumeClaim:
+            claimName: ldap-certs-pvc
